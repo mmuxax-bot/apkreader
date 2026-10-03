@@ -86,10 +86,21 @@ function safeDomain(value: string) {
     );
 }
 
+const javaReservedWords = new Set([
+  'abstract', 'assert', 'boolean', 'break', 'byte', 'case', 'catch', 'char',
+  'class', 'const', 'continue', 'default', 'do', 'double', 'else', 'enum',
+  'extends', 'final', 'finally', 'float', 'for', 'goto', 'if', 'implements',
+  'import', 'instanceof', 'int', 'interface', 'long', 'native', 'new', 'package',
+  'private', 'protected', 'public', 'return', 'short', 'static', 'strictfp',
+  'super', 'switch', 'synchronized', 'this', 'throw', 'throws', 'transient',
+  'try', 'void', 'volatile', 'while', 'true', 'false', 'null',
+]);
+
 function safePackageName(value: string) {
   return (
     value.length <= 255 &&
-    /^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$/.test(value)
+    /^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$/.test(value) &&
+    !value.split('.').some((part) => javaReservedWords.has(part))
   );
 }
 
@@ -268,7 +279,9 @@ export async function validateBuildConfig(
     issues.push('Tətbiq adı 1–80 simvol olmalıdır.');
   }
   if (!safePackageName(config.packageName.trim())) {
-    issues.push('Package name com.sirket.tetbiq formatında olmalıdır.');
+    issues.push(
+      'Package name com.sirket.tetbiq formatında olmalıdır (Java açar sözləri — məsələn new, class — olmaz).',
+    );
   }
   if (!/^[0-9A-Za-z][0-9A-Za-z._+-]{0,63}$/.test(config.versionName.trim())) {
     issues.push('Version name yalnız rəqəm, hərf, nöqtə, tire və + simvollarından ibarət olmalıdır.');
@@ -452,7 +465,7 @@ function packageJson(config: BuildConfig) {
       },
       dependencies,
       devDependencies: {
-        '@capacitor/assets': '^3.0.5',
+        ...(config.iconDataUrl ? { '@capacitor/assets': '^3.0.5' } : {}),
         '@capacitor/cli': '^6.2.0',
       },
     },
@@ -659,6 +672,22 @@ except (OSError, zipfile.BadZipFile, RuntimeError, ValueError) as error:
 `;
 }
 
+function prepareIconsScript() {
+  return `import sharp from 'sharp';
+
+// Adaptiv Android ikonu: ikon mərkəzdə 66% ölçüdə, arxa fon ağ.
+await sharp('assets/icon-only.png')
+  .resize(676, 676, { fit: 'cover' })
+  .extend({ top: 174, bottom: 174, left: 174, right: 174, background: { r: 0, g: 0, b: 0, alpha: 0 } })
+  .png()
+  .toFile('assets/icon-foreground.png');
+await sharp({ create: { width: 1024, height: 1024, channels: 4, background: '#ffffff' } })
+  .png()
+  .toFile('assets/icon-background.png');
+console.log('Adaptiv ikon qatları hazırdır.');
+`;
+}
+
 function buildAndroidScript() {
   return `#!/usr/bin/env bash
 set -euo pipefail
@@ -668,6 +697,14 @@ ROOT_DIR="$(cd "$APP_DIR/.." && pwd)"
 OUTPUT_DIR="$ROOT_DIR/output"
 CONFIG="$ROOT_DIR/config.json"
 
+# Qeyri-interaktiv rejim: CI və serverlərdə heç bir sual verilməməlidir.
+export CI="\${CI:-true}"
+export NPM_CONFIG_YES=true
+export NPM_CONFIG_AUDIT=false
+export NPM_CONFIG_FUND=false
+export NPM_CONFIG_UPDATE_NOTIFIER=false
+export GRADLE_OPTS="\${GRADLE_OPTS:--Dorg.gradle.daemon=false -Dorg.gradle.jvmargs=-Xmx3g}"
+
 command -v node >/dev/null || { echo "Node.js quraşdırılmayıb. Əvvəlcə bash server/install-ubuntu.sh işlədin." >&2; exit 1; }
 command -v npm >/dev/null || { echo "npm tapılmadı." >&2; exit 1; }
 command -v java >/dev/null || { echo "Java 17 quraşdırılmayıb." >&2; exit 1; }
@@ -676,37 +713,56 @@ command -v python3 >/dev/null || { echo "Python 3 tapılmadı." >&2; exit 1; }
 JAVA_VERSION="$(java -version 2>&1 | head -n 1)"
 echo "$JAVA_VERSION" | grep -q '17\\.' || { echo "Java 17 tələb olunur; tapıldı: $JAVA_VERSION" >&2; exit 1; }
 
+if [ -z "\${ANDROID_HOME:-}" ] && [ -n "\${ANDROID_SDK_ROOT:-}" ]; then export ANDROID_HOME="$ANDROID_SDK_ROOT"; fi
+if [ -z "\${ANDROID_HOME:-}" ]; then
+  for candidate in /opt/android-sdk /usr/local/lib/android/sdk "$HOME/Android/Sdk"; do
+    if [ -d "$candidate" ]; then export ANDROID_HOME="$candidate"; break; fi
+  done
+fi
+if [ -z "\${ANDROID_HOME:-}" ]; then echo "Android SDK tapılmadı (ANDROID_HOME təyin edilməyib)." >&2; exit 1; fi
+export ANDROID_SDK_ROOT="$ANDROID_HOME"
+
 mkdir -p "$OUTPUT_DIR"
 cd "$APP_DIR"
-npm install
+echo "::group::npm install"
+npm install --no-audit --no-fund --loglevel=error
+echo "::endgroup::"
 
 SOURCE_MODE="$(node -e 'process.stdout.write(JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")).sourceMode)' "$CONFIG")"
 if [ "$SOURCE_MODE" = "zip" ]; then
   python3 scripts/prepare-site.py
 fi
 
+npx --no-install cap telemetry off >/dev/null 2>&1 || true
 if [ ! -d android ]; then
-  npx cap add android
+  npx --no-install cap add android
 fi
-npx cap sync android
+npx --no-install cap sync android
 python3 scripts/configure-android.py
 
-FORMAT="$(node -e 'process.stdout.write(JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")).format)' "$CONFIG")"
-cd android
-if [ -f "$APP_DIR/assets/icon.png" ]; then
-  cd "$APP_DIR"
-  npx capacitor-assets generate --android
-  cd android
+# Android SDK yolunu Gradle üçün yaz (ANDROID_HOME əlavə təminatı).
+printf 'sdk.dir=%s\\n' "$ANDROID_HOME" > android/local.properties
+
+if [ -f "$APP_DIR/assets/icon-only.png" ]; then
+  # İkon yaradılması uğursuz olsa belə tətbiq standart ikonla yığılsın.
+  if ! { node scripts/prepare-icons.mjs && npx --no-install capacitor-assets generate --android; }; then
+    echo "XƏBƏRDARLIQ: ikon yaradıla bilmədi, standart ikon istifadə olunur." >&2
+  fi
 fi
+
+FORMAT="$(node -e 'process.stdout.write(JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")).format)' "$CONFIG")"
+cd "$APP_DIR/android"
+chmod +x ./gradlew
 if [ "$FORMAT" = "apk" ] || [ "$FORMAT" = "both" ]; then
-  ./gradlew --no-daemon assembleDebug
+  ./gradlew --no-daemon --console=plain assembleDebug
   cp app/build/outputs/apk/debug/app-debug.apk "$OUTPUT_DIR/__SLUG__.apk"
 fi
 if [ "$FORMAT" = "aab" ] || [ "$FORMAT" = "both" ]; then
-  ./gradlew --no-daemon bundleRelease
+  ./gradlew --no-daemon --console=plain bundleRelease
   cp app/build/outputs/bundle/release/app-release.aab "$OUTPUT_DIR/__SLUG__.aab"
 fi
 echo "Build tamamlandı. Fayllar: $OUTPUT_DIR"
+ls -la "$OUTPUT_DIR"
 `;
 }
 
@@ -814,7 +870,7 @@ CMD ["bash", "app/scripts/build-android.sh"]
 `;
 }
 
-function dockerCompose(config: BuildConfig) {
+function dockerCompose(_config: BuildConfig) {
   return `services:
   android-build:
     build:
@@ -866,7 +922,9 @@ export function getBundleFileList(
   if (config.enableSsl && config.enableNginx) {
     files.push('server/enable-https.sh');
   }
-  if (config.iconDataUrl) files.push('app/assets/icon.png');
+  if (config.iconDataUrl) {
+    files.push('app/assets/icon-only.png', 'app/scripts/prepare-icons.mjs');
+  }
   if (config.sourceMode === 'zip' && !websiteZipFile) {
     files.push('Sayt ZIP-i gözlənilir');
   }
@@ -1018,9 +1076,10 @@ certbot --nginx --domain ${domain} --email ${email} --redirect
   }
   if (config.iconDataUrl) {
     entries.push({
-      path: `${root}/app/assets/icon.png`,
+      path: `${root}/app/assets/icon-only.png`,
       bytes: iconBytes(config.iconDataUrl),
     });
+    addText('app/scripts/prepare-icons.mjs', prepareIconsScript());
   }
 
   return createStoredZip(entries);

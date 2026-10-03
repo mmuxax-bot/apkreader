@@ -14,7 +14,7 @@ export const Route = createRootRoute({
       {
         name: "description",
         content:
-          "Sayt ünvanı və ya ZIP yükləyin. APK Studio Ubuntu serverində APK/AAB yaradan tam hazır Android build kitini hazırlayır.",
+          "Sayt ünvanı və ya ZIP yükləyin, “APK düzəlt” düyməsinə basın — APK Studio tətbiqi yığır və yükləmə linkini verir.",
       },
       { name: "theme-color", content: "#28353a" },
     ],

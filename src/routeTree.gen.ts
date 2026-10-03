@@ -10,33 +10,89 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiApkChunkRouteImport } from './routes/api/apk/chunk'
+import { Route as ApiApkStartRouteImport } from './routes/api/apk/start'
+import { Route as ApiApkJobIdDownloadRouteImport } from './routes/api/apk/$jobId/download'
+import { Route as ApiApkJobIdStatusRouteImport } from './routes/api/apk/$jobId/status'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiApkChunkRoute = ApiApkChunkRouteImport.update({
+  id: '/api/apk/chunk',
+  path: '/api/apk/chunk',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiApkStartRoute = ApiApkStartRouteImport.update({
+  id: '/api/apk/start',
+  path: '/api/apk/start',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiApkJobIdDownloadRoute = ApiApkJobIdDownloadRouteImport.update({
+  id: '/api/apk/$jobId/download',
+  path: '/api/apk/$jobId/download',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiApkJobIdStatusRoute = ApiApkJobIdStatusRouteImport.update({
+  id: '/api/apk/$jobId/status',
+  path: '/api/apk/$jobId/status',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/api/apk/chunk': typeof ApiApkChunkRoute
+  '/api/apk/start': typeof ApiApkStartRoute
+  '/api/apk/$jobId/download': typeof ApiApkJobIdDownloadRoute
+  '/api/apk/$jobId/status': typeof ApiApkJobIdStatusRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/api/apk/chunk': typeof ApiApkChunkRoute
+  '/api/apk/start': typeof ApiApkStartRoute
+  '/api/apk/$jobId/download': typeof ApiApkJobIdDownloadRoute
+  '/api/apk/$jobId/status': typeof ApiApkJobIdStatusRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/api/apk/chunk': typeof ApiApkChunkRoute
+  '/api/apk/start': typeof ApiApkStartRoute
+  '/api/apk/$jobId/download': typeof ApiApkJobIdDownloadRoute
+  '/api/apk/$jobId/status': typeof ApiApkJobIdStatusRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/api/apk/chunk'
+    | '/api/apk/start'
+    | '/api/apk/$jobId/download'
+    | '/api/apk/$jobId/status'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/api/apk/chunk'
+    | '/api/apk/start'
+    | '/api/apk/$jobId/download'
+    | '/api/apk/$jobId/status'
+  id:
+    | '__root__'
+    | '/'
+    | '/api/apk/chunk'
+    | '/api/apk/start'
+    | '/api/apk/$jobId/download'
+    | '/api/apk/$jobId/status'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ApiApkChunkRoute: typeof ApiApkChunkRoute
+  ApiApkStartRoute: typeof ApiApkStartRoute
+  ApiApkJobIdDownloadRoute: typeof ApiApkJobIdDownloadRoute
+  ApiApkJobIdStatusRoute: typeof ApiApkJobIdStatusRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +104,43 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/apk/chunk': {
+      id: '/api/apk/chunk'
+      path: '/api/apk/chunk'
+      fullPath: '/api/apk/chunk'
+      preLoaderRoute: typeof ApiApkChunkRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/apk/start': {
+      id: '/api/apk/start'
+      path: '/api/apk/start'
+      fullPath: '/api/apk/start'
+      preLoaderRoute: typeof ApiApkStartRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/apk/$jobId/download': {
+      id: '/api/apk/$jobId/download'
+      path: '/api/apk/$jobId/download'
+      fullPath: '/api/apk/$jobId/download'
+      preLoaderRoute: typeof ApiApkJobIdDownloadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/apk/$jobId/status': {
+      id: '/api/apk/$jobId/status'
+      path: '/api/apk/$jobId/status'
+      fullPath: '/api/apk/$jobId/status'
+      preLoaderRoute: typeof ApiApkJobIdStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ApiApkChunkRoute: ApiApkChunkRoute,
+  ApiApkStartRoute: ApiApkStartRoute,
+  ApiApkJobIdDownloadRoute: ApiApkJobIdDownloadRoute,
+  ApiApkJobIdStatusRoute: ApiApkJobIdStatusRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

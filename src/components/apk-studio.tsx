@@ -8,17 +8,31 @@ import {
   type BuildConfig,
 } from "@/lib/build-bundle";
 import {
+  ApkClientError,
+  downloadUrl,
+  fetchStatus,
+  newJobId,
+  sha256Hex,
+  sleep,
+  startBuild,
+  uploadKit,
+} from "@/lib/apk/client";
+import type { JobFile } from "@/lib/apk/shared";
+import {
   AlertCircle,
   ArrowDownToLine,
   ArrowUpFromLine,
   Check,
   CheckCircle2,
   Code2,
+  Download,
   FileArchive,
   Globe2,
+  Hammer,
   LockKeyhole,
   LoaderCircle,
   PackageCheck,
+  RotateCw,
   ShieldCheck,
   Smartphone,
 } from "lucide-react";
@@ -29,6 +43,19 @@ type BuildStatus = {
   message?: string;
   errors?: string[];
 };
+type ApkPhase = "idle" | "preparing" | "uploading" | "queued" | "building" | "ready" | "error";
+type ApkState = {
+  phase: ApkPhase;
+  progress: number;
+  message: string;
+  jobId?: string;
+  files?: JobFile[];
+  error?: string;
+};
+class FatalJobError extends Error {}
+const JOB_STORAGE_KEY = "apk-studio:job";
+const JOB_MAX_AGE_MS = 2 * 60 * 60 * 1000;
+const POLL_TIMEOUT_MS = 50 * 60 * 1000;
 type FormState = {
   websiteUrl: string;
   appName: string;
@@ -152,6 +179,9 @@ export function ApkStudio() {
   const [status, setStatus] = useState<BuildStatus>({ kind: "idle" });
   const [bundleFiles, setBundleFiles] = useState<string[]>([]);
   const zipCheckId = useRef(0);
+  const [apk, setApk] = useState<ApkState>({ phase: "idle", progress: 0, message: "" });
+  const runId = useRef(0);
+  const abortRef = useRef<AbortController | null>(null);
 
   const update = (key: keyof FormState, value: string | boolean) =>
     setForm((old) => ({ ...old, [key]: value }));
@@ -207,13 +237,19 @@ export function ApkStudio() {
     if (form.privacyPolicyUrl && !isHttpUrl(form.privacyPolicyUrl)) {
       errors.push("Məxfilik siyasəti üçün etibarlı URL daxil edin.");
     }
+    return errors;
+  }, [form, source, zipFile, zipError]);
+
+  // Yalnız endirilən server kiti üçün keçərli olan qaydalar (APK düzəltməyə təsir etmir).
+  const kitErrors = useMemo(() => {
+    const errors: string[] = [];
     if (form.ssl && !form.nginx) errors.push("SSL konfiqurasiyası üçün əvvəlcə Nginx-i aktiv edin.");
     if (form.ssl && form.nginx && !form.domain) errors.push("SSL üçün domen adını daxil edin.");
     if (form.ssl && form.nginx && !form.letsEncryptEmail) {
       errors.push("Let’s Encrypt üçün e-poçt ünvanını daxil edin.");
     }
     return errors;
-  }, [form, source, zipFile, zipError]);
+  }, [form.ssl, form.nginx, form.domain, form.letsEncryptEmail]);
 
   const setName = (value: string) => {
     setForm((old) => ({
@@ -259,11 +295,12 @@ export function ApkStudio() {
   };
 
   const createBundle = async () => {
-    if (basicErrors.length) {
+    const allErrors = [...basicErrors, ...kitErrors];
+    if (allErrors.length) {
       setStatus({
         kind: "error",
         message: "Davam etmək üçün qeyd olunan sahələri düzəldin.",
-        errors: basicErrors,
+        errors: allErrors,
       });
       document.getElementById("validation-summary")?.scrollIntoView({
         behavior: "smooth",
@@ -309,6 +346,156 @@ export function ApkStudio() {
       });
     }
   };
+
+  const cancelRun = () => {
+    runId.current += 1;
+    abortRef.current?.abort();
+    abortRef.current = null;
+  };
+
+  useEffect(() => () => cancelRun(), []);
+
+  const pollJob = async (jobId: string, id: number, signal: AbortSignal) => {
+    const startedAt = Date.now();
+    let failures = 0;
+    let unknownSince = 0;
+    while (id === runId.current) {
+      if (Date.now() - startedAt > POLL_TIMEOUT_MS) {
+        throw new FatalJobError("Build çox uzun çəkdi. Yenidən cəhd edin.");
+      }
+      try {
+        const job = await fetchStatus(jobId, signal);
+        failures = 0;
+        if (id !== runId.current) return;
+        if (job.state === "unknown") {
+          unknownSince ||= Date.now();
+          if (Date.now() - unknownSince > 60_000) throw new FatalJobError(job.message);
+        } else {
+          unknownSince = 0;
+        }
+        if (job.state === "ready") {
+          localStorage.removeItem(JOB_STORAGE_KEY);
+          setApk({ phase: "ready", progress: 100, message: job.message, jobId, files: job.files ?? [] });
+          return;
+        }
+        if (job.state === "failed") throw new FatalJobError(job.reason ?? job.message);
+        setApk({
+          phase: job.state === "building" ? "building" : "queued",
+          progress: Math.max(job.progress, 3),
+          message: job.message,
+          jobId,
+        });
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        if (error instanceof FatalJobError) throw error;
+        // Şəbəkə xətalarını bir neçə dəfə tolere et; build GitHub-da davam edir.
+        failures += 1;
+        if (failures > 6) throw error;
+      }
+      await sleep(4000, signal);
+    }
+  };
+
+  const failApk = (error: unknown) => {
+    if (error instanceof DOMException && error.name === "AbortError") return;
+    localStorage.removeItem(JOB_STORAGE_KEY);
+    setApk({
+      phase: "error",
+      progress: 0,
+      message: "",
+      error: error instanceof Error ? error.message : "APK hazırlanarkən xəta baş verdi.",
+    });
+  };
+
+  const createApk = async () => {
+    if (apk.phase === "preparing" || apk.phase === "uploading") return;
+    if (basicErrors.length) {
+      setStatus({
+        kind: "error",
+        message: "Davam etmək üçün qeyd olunan sahələri düzəldin.",
+        errors: basicErrors,
+      });
+      document.getElementById("validation-summary")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+    setStatus({ kind: "idle" });
+    cancelRun();
+    const id = runId.current;
+    const controller = new AbortController();
+    abortRef.current = controller;
+    setApk({ phase: "preparing", progress: 0, message: "Fayllar hazırlanır…" });
+    try {
+      // Server alətləri (Docker/Nginx/SSL) APK üçün lazım deyil.
+      const buildConfig: BuildConfig = {
+        ...config,
+        enableDocker: false,
+        enableNginx: false,
+        enableSsl: false,
+        domain: "",
+        sslEmail: "",
+        iconDataUrl: iconFile ? await imageToPngDataUrl(iconFile) : null,
+      };
+      const activeZip = source === "zip" ? zipFile : null;
+      const issues = await validateBuildConfig(buildConfig, activeZip);
+      if (issues.length) throw new ApkClientError(issues[0], false);
+      const kit = await buildProjectBundle(buildConfig, activeZip);
+      const sha256 = await sha256Hex(kit);
+      const jobId = newJobId();
+      if (id !== runId.current) return;
+
+      setApk({ phase: "uploading", progress: 0, message: "Fayllar göndərilir…", jobId });
+      const parts = await uploadKit(
+        kit,
+        jobId,
+        (fraction) => {
+          if (id === runId.current) {
+            setApk({
+              phase: "uploading",
+              progress: Math.round(fraction * 100),
+              message: `Fayllar göndərilir… ${Math.round(fraction * 100)}%`,
+              jobId,
+            });
+          }
+        },
+        controller.signal,
+      );
+      if (id !== runId.current) return;
+      await startBuild(
+        { jobId, parts, size: kit.size, sha256, format: buildConfig.format },
+        controller.signal,
+      );
+      localStorage.setItem(JOB_STORAGE_KEY, JSON.stringify({ jobId, at: Date.now() }));
+      setApk({ phase: "queued", progress: 3, message: "Build başladılır…", jobId });
+      await pollJob(jobId, id, controller.signal);
+    } catch (error) {
+      if (id === runId.current) failApk(error);
+    }
+  };
+
+  // Səhifə yenilənəndə yarımçıq qalan işi davam etdir.
+  useEffect(() => {
+    let saved: { jobId?: string; at?: number } | null = null;
+    try {
+      saved = JSON.parse(localStorage.getItem(JOB_STORAGE_KEY) ?? "null");
+    } catch {
+      saved = null;
+    }
+    if (!saved?.jobId || !saved.at || Date.now() - saved.at > JOB_MAX_AGE_MS) {
+      localStorage.removeItem(JOB_STORAGE_KEY);
+      return;
+    }
+    const jobId = saved.jobId;
+    const id = ++runId.current;
+    const controller = new AbortController();
+    abortRef.current = controller;
+    setApk({ phase: "queued", progress: 3, message: "Əvvəlki build yoxlanılır…", jobId });
+    void pollJob(jobId, id, controller.signal).catch((error) => {
+      if (id === runId.current) failApk(error);
+    });
+    return () => controller.abort();
+  }, []);
+
+  const apkBusy = apk.phase === "preparing" || apk.phase === "uploading" || apk.phase === "queued" || apk.phase === "building";
 
   const field = (
     key: keyof FormState,
@@ -366,7 +553,7 @@ export function ApkStudio() {
           </span>
         </a>
         <div className="top-note">
-          <i aria-hidden="true" /> Lokal iş sahəsi <span aria-hidden="true">·</span> Fayllarınız brauzerdə qalır
+          <i aria-hidden="true" /> Bulud build <span aria-hidden="true">·</span> Fayllar yalnız APK yığmaq üçün göndərilir
         </div>
       </header>
 
@@ -379,8 +566,9 @@ export function ApkStudio() {
             <em>çevirin.</em>
           </h1>
           <p>
-            Sayt linkini yazın və ya hazır statik ZIP yükləyin. APK Studio tam hazır build kitini
-            endirir — Ubuntu serverində APK və ya AAB-ni siz yığacaqsınız.
+            Sayt linkini yazın və ya hazır statik ZIP yükləyin, “APK düzəlt” düyməsinə basın. APK
+            Studio tətbiqi bizim build xidmətində yığır və yükləmə linkini verir. İstəsəniz, öz
+            serverinizdə yığmaq üçün build kiti də endirə bilərsiniz.
           </p>
           <div className="stack-strip" aria-label="Build kitə daxil olanlar">
             {STACK.map((item) => (
@@ -391,8 +579,8 @@ export function ApkStudio() {
           </div>
         </div>
         <div className="hero-stamp">
-          <strong>NO. 01 / BUILD KIT</strong>
-          APK deyil — onu hazırlayan layihə
+          <strong>NO. 01 / APK BUILD</strong>
+          Düyməyə bas — hazır APK linki al
         </div>
       </section>
 
@@ -505,7 +693,7 @@ export function ApkStudio() {
                 ) : null}
                 <div className="inline-alert">
                   <ShieldCheck size={14} />
-                  ZIP-in içindəki fayllar build kitə daxil edilir. Yüklənmiş skriptlər icra edilmir.
+                  ZIP-in içindəki fayllar tətbiqə daxil edilir və yığılmaq üçün build xidmətinə göndərilir. Sayt skriptləri build zamanı icra edilmir.
                 </div>
               </>
             )}
@@ -650,7 +838,7 @@ export function ApkStudio() {
               <span className="section-num">03</span>
               <div>
                 <h2>Build sazlamaları</h2>
-                <p>APK, AAB və Ubuntu server mühiti — ZIP-ə bütün quraşdırma əmrləri daxil edilir.</p>
+                <p>APK / AAB formatı. Öz serverinizdə yığmaq istəyirsinizsə, əlavə server seçimləri aşağıdadır.</p>
               </div>
             </div>
             <div className="field-grid">
@@ -665,8 +853,13 @@ export function ApkStudio() {
                   ],
                   "output-format",
                 )}
-                <p className="field-hint">Build kit seçdiyiniz formatı serverinizdə yaradacaq.</p>
+                <p className="field-hint">“APK düzəlt” seçdiyiniz formatı bizim build xidmətində hazırlayır. AAB imzasızdır (Play Console üçün sonradan imzalanmalıdır).</p>
               </div>
+            </div>
+            <details className="kit-details">
+              <summary>Öz serverim üçün build kit seçimləri (əlavə)</summary>
+              <p className="field-hint">Bu seçimlər yalnız endirilən ZIP-ə təsir edir; “APK düzəlt” onları nəzərə almır.</p>
+            <div className="field-grid">
               <div className="field full">
                 <span className="field-label">Ubuntu versiyası</span>
                 {segment(
@@ -682,7 +875,7 @@ export function ApkStudio() {
                 <div className="config-note">
                   <strong className="note-strong">Serverə daxil olanlar</strong>
                   <br />
-                  Tam hazır ZIP-də quraşdırma skriptləri var. Siz serverdə işə salırsınız.
+                  Endirilən ZIP-də quraşdırma skriptləri var. Siz serverdə işə salırsınız.
                   <ul className="kit-list">
                     <li>Java 17</li>
                     <li>Node.js 20</li>
@@ -756,6 +949,7 @@ export function ApkStudio() {
                 </>
               ) : null}
             </div>
+            </details>
           </section>
         </form>
 
@@ -804,6 +998,75 @@ export function ApkStudio() {
                 </ul>
               </div>
             ) : null}
+            {apkBusy ? (
+              <div className="status-card pending" role="status" data-testid="status-apk-progress">
+                <div className="status-head">
+                  <LoaderCircle size={15} className="spinner" />
+                  {apk.phase === "preparing"
+                    ? "Fayllar hazırlanır"
+                    : apk.phase === "uploading"
+                      ? "Fayllar göndərilir"
+                      : apk.phase === "queued"
+                        ? "Növbədə"
+                        : "APK yığılır"}
+                </div>
+                <p>{apk.message}</p>
+                <div
+                  className="progress-track"
+                  role="progressbar"
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={apk.progress}
+                >
+                  <i style={{ width: `${Math.min(100, Math.max(2, apk.progress))}%` }} />
+                </div>
+                {apk.phase === "building" || apk.phase === "queued" ? (
+                  <p className="status-extra">Adətən 3–8 dəqiqə çəkir. Bu səhifəni açıq saxlayın.</p>
+                ) : null}
+              </div>
+            ) : null}
+            {apk.phase === "error" ? (
+              <div className="status-card error" role="alert" data-testid="status-apk-error">
+                <div className="status-head">
+                  <AlertCircle size={15} />
+                  APK hazırlamaq mümkün olmadı
+                </div>
+                <p>{apk.error}</p>
+                <button
+                  type="button"
+                  className="retry-button"
+                  onClick={() => void createApk()}
+                  data-testid="button-retry-apk"
+                >
+                  <RotateCw size={13} /> Yenidən cəhd et
+                </button>
+              </div>
+            ) : null}
+            {apk.phase === "ready" && apk.jobId ? (
+              <div className="status-card success apk-ready" role="status" data-testid="status-apk-ready">
+                <div className="status-head">
+                  <CheckCircle2 size={15} />
+                  APK hazırdır!
+                </div>
+                {(apk.files?.length ? apk.files : [{ kind: "apk" as const, name: "APK", size: 0 }]).map((file) => (
+                  <a
+                    key={file.kind}
+                    className="download-link"
+                    href={downloadUrl(apk.jobId!, file.kind)}
+                    download
+                    data-testid={`link-download-${file.kind}`}
+                  >
+                    <Download size={16} />
+                    {file.kind === "apk" ? "APK-nı yüklə" : "AAB-ni yüklə"}
+                    {file.size ? <small>{prettySize(file.size)}</small> : null}
+                  </a>
+                ))}
+                <p className="status-extra">
+                  Link qısa müddət (bir neçə gün) işləyir. APK debug imzalıdır — telefonda “naməlum mənbələrdən
+                  quraşdırma” icazəsi lazım ola bilər.
+                </p>
+              </div>
+            ) : null}
             {status.kind === "pending" ? (
               <div className="status-card pending" role="status" data-testid="status-building">
                 <div className="status-head">
@@ -845,31 +1108,51 @@ export function ApkStudio() {
           <button
             type="button"
             className="build-button"
+            disabled={apkBusy}
+            onClick={() => void createApk()}
+            data-testid="button-create-apk"
+          >
+            {apkBusy ? (
+              <>
+                <LoaderCircle size={16} className="spinner" />
+                {apk.phase === "uploading" ? `Göndərilir… ${apk.progress}%` : "Hazırlanır…"}
+              </>
+            ) : (
+              <>
+                <Hammer size={17} />
+                APK düzəlt
+              </>
+            )}
+          </button>
+          <button
+            type="button"
+            className="kit-button"
             disabled={status.kind === "pending"}
             onClick={() => void createBundle()}
             data-testid="button-create-build-kit"
           >
             {status.kind === "pending" ? (
               <>
-                <LoaderCircle size={16} className="spinner" />
+                <LoaderCircle size={14} className="spinner" />
                 Hazırlanır…
               </>
             ) : (
               <>
-                <PackageCheck size={17} />
-                Tam hazır ZIP ver <ArrowDownToLine size={15} />
+                <PackageCheck size={15} />
+                Build kit ZIP-i endir <ArrowDownToLine size={14} />
               </>
             )}
           </button>
           <p className="build-help">
-            Endirilən ZIP serverdə işə salınan layihə və skriptlərdir — APK/AAB faylının özü deyil. Qalanını
-            siz edəcəksiniz.
+            “APK düzəlt” tətbiqi bizim build xidmətində yığır və yükləmə linki verir. Əlavə seçim kimi
+            serverdə özünüz yığmaq üçün build kit ZIP-i də endirə bilərsiniz.
           </p>
           <div className="secure-note">
             <LockKeyhole size={15} />
             <span>
-              Fayllar bu brauzerdə emal edilir. ZIP daxilindəki mənbə kodu icra olunmur; server məlumatları
-              build kit sazlaması üçündür.
+              APK düzəldəndə sayt ünvanı/ZIP-i, ikon və tətbiq parametrləri yığma üçün build xidmətimizə
+              göndərilir və iş bitdikdən sonra silinir. Hazır APK qısa müddət saxlanılır; yükləmə linki
+              yalnız sizdə olur.
             </span>
           </div>
         </aside>
