@@ -16,7 +16,7 @@ export const Route = createRootRoute({
         content:
           "Sayt ünvanı və ya ZIP yükləyin, “APK düzəlt” düyməsinə basın — APK Studio tətbiqi yığır və yükləmə linkini verir.",
       },
-      { name: "theme-color", content: "#28353a" },
+      { name: "theme-color", content: "#070b12" },
     ],
     links: [
       { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
@@ -27,7 +27,7 @@ export const Route = createRootRoute({
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=Newsreader:ital,opsz,wght@0,6..72,500;1,6..72,500&family=Outfit:wght@400;500;600;700&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Sans:wght@400;500;600&display=swap",
       },
     ],
   }),
