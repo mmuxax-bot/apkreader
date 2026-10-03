@@ -1,8 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ApkStudio } from "@/components/apk-studio";
+import { Landing } from "@/components/landing";
 
-export const Route = createFileRoute("/")({ component: Home });
-
-function Home() {
-  return <ApkStudio />;
-}
+export const Route = createFileRoute("/")({
+  head: () => ({
+    meta: [
+      { title: "APK Studio — saytınızı Android tətbiqinə çevirin" },
+      {
+        name: "description",
+        content:
+          "Sayt linkini və ya statik ZIP-i verin, “Başla” düyməsinə basın — APK Studio Android tətbiqini yığıb yükləmə linki versin.",
+      },
+    ],
+  }),
+  component: Landing,
+});

@@ -10,6 +10,9 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as StudioRouteImport } from './routes/studio'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as ApiApkChunkRouteImport } from './routes/api/apk/chunk'
 import { Route as ApiApkStartRouteImport } from './routes/api/apk/start'
 import { Route as ApiApkJobIdDownloadRouteImport } from './routes/api/apk/$jobId/download'
@@ -18,6 +21,21 @@ import { Route as ApiApkJobIdStatusRouteImport } from './routes/api/apk/$jobId/s
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StudioRoute = StudioRouteImport.update({
+  id: '/studio',
+  path: '/studio',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiApkChunkRoute = ApiApkChunkRouteImport.update({
@@ -43,6 +61,9 @@ const ApiApkJobIdStatusRoute = ApiApkJobIdStatusRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/privacy': typeof PrivacyRoute
+  '/studio': typeof StudioRoute
+  '/terms': typeof TermsRoute
   '/api/apk/chunk': typeof ApiApkChunkRoute
   '/api/apk/start': typeof ApiApkStartRoute
   '/api/apk/$jobId/download': typeof ApiApkJobIdDownloadRoute
@@ -50,6 +71,9 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/privacy': typeof PrivacyRoute
+  '/studio': typeof StudioRoute
+  '/terms': typeof TermsRoute
   '/api/apk/chunk': typeof ApiApkChunkRoute
   '/api/apk/start': typeof ApiApkStartRoute
   '/api/apk/$jobId/download': typeof ApiApkJobIdDownloadRoute
@@ -58,6 +82,9 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/privacy': typeof PrivacyRoute
+  '/studio': typeof StudioRoute
+  '/terms': typeof TermsRoute
   '/api/apk/chunk': typeof ApiApkChunkRoute
   '/api/apk/start': typeof ApiApkStartRoute
   '/api/apk/$jobId/download': typeof ApiApkJobIdDownloadRoute
@@ -67,6 +94,9 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/privacy'
+    | '/studio'
+    | '/terms'
     | '/api/apk/chunk'
     | '/api/apk/start'
     | '/api/apk/$jobId/download'
@@ -74,6 +104,9 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/privacy'
+    | '/studio'
+    | '/terms'
     | '/api/apk/chunk'
     | '/api/apk/start'
     | '/api/apk/$jobId/download'
@@ -81,6 +114,9 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/privacy'
+    | '/studio'
+    | '/terms'
     | '/api/apk/chunk'
     | '/api/apk/start'
     | '/api/apk/$jobId/download'
@@ -89,6 +125,9 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  PrivacyRoute: typeof PrivacyRoute
+  StudioRoute: typeof StudioRoute
+  TermsRoute: typeof TermsRoute
   ApiApkChunkRoute: typeof ApiApkChunkRoute
   ApiApkStartRoute: typeof ApiApkStartRoute
   ApiApkJobIdDownloadRoute: typeof ApiApkJobIdDownloadRoute
@@ -102,6 +141,27 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/studio': {
+      id: '/studio'
+      path: '/studio'
+      fullPath: '/studio'
+      preLoaderRoute: typeof StudioRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/apk/chunk': {
@@ -137,6 +197,9 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  PrivacyRoute: PrivacyRoute,
+  StudioRoute: StudioRoute,
+  TermsRoute: TermsRoute,
   ApiApkChunkRoute: ApiApkChunkRoute,
   ApiApkStartRoute: ApiApkStartRoute,
   ApiApkJobIdDownloadRoute: ApiApkJobIdDownloadRoute,

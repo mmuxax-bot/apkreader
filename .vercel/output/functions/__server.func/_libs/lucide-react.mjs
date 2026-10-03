@@ -102,6 +102,19 @@ var ArrowDownToLine = createLucideIcon("arrow-down-to-line", [
 * This source code is licensed under the ISC license.
 * See the LICENSE file in the root directory of this source tree.
 */
+var ArrowRight = createLucideIcon("arrow-right", [["path", {
+	d: "M5 12h14",
+	key: "1ays0h"
+}], ["path", {
+	d: "m12 5 7 7-7 7",
+	key: "xquz4c"
+}]]);
+/**
+* @license lucide-react v0.510.0 - ISC
+*
+* This source code is licensed under the ISC license.
+* See the LICENSE file in the root directory of this source tree.
+*/
 var ArrowUpFromLine = createLucideIcon("arrow-up-from-line", [
 	["path", {
 		d: "m18 9-6-6-6 6",
@@ -169,6 +182,26 @@ var CircleCheck = createLucideIcon("circle-check", [["circle", {
 	d: "m9 12 2 2 4-4",
 	key: "dzmm74"
 }]]);
+/**
+* @license lucide-react v0.510.0 - ISC
+*
+* This source code is licensed under the ISC license.
+* See the LICENSE file in the root directory of this source tree.
+*/
+var CloudUpload = createLucideIcon("cloud-upload", [
+	["path", {
+		d: "M12 13v8",
+		key: "1l5pq0"
+	}],
+	["path", {
+		d: "M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242",
+		key: "1pljnt"
+	}],
+	["path", {
+		d: "m8 17 4-4 4 4",
+		key: "1quai1"
+	}]
+]);
 /**
 * @license lucide-react v0.510.0 - ISC
 *
@@ -424,4 +457,4 @@ var TriangleAlert = createLucideIcon("triangle-alert", [
 	}]
 ]);
 //#endregion
-export { ArrowDownToLine as _, PackageCheck as a, Hammer as c, Download as d, CodeXml as f, ArrowUpFromLine as g, Check as h, RotateCw as i, FileArchive as l, CircleAlert as m, Smartphone as n, LockKeyhole as o, CircleCheck as p, ShieldCheck as r, LoaderCircle as s, TriangleAlert as t, Earth as u };
+export { ArrowUpFromLine as _, PackageCheck as a, Hammer as c, Download as d, CodeXml as f, Check as g, CircleAlert as h, RotateCw as i, FileArchive as l, CircleCheck as m, Smartphone as n, LockKeyhole as o, CloudUpload as p, ShieldCheck as r, LoaderCircle as s, TriangleAlert as t, Earth as u, ArrowRight as v, ArrowDownToLine as y };

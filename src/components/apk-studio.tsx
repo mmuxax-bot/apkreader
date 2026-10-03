@@ -18,13 +18,14 @@ import {
   uploadKit,
 } from "@/lib/apk/client";
 import type { JobFile } from "@/lib/apk/shared";
+import { SiteBrand, SiteFooter } from "@/components/site-chrome";
+import { Link } from "@tanstack/react-router";
 import {
   AlertCircle,
   ArrowDownToLine,
   ArrowUpFromLine,
   Check,
   CheckCircle2,
-  Code2,
   Download,
   FileArchive,
   Globe2,
@@ -180,6 +181,7 @@ export function ApkStudio() {
   const [bundleFiles, setBundleFiles] = useState<string[]>([]);
   const zipCheckId = useRef(0);
   const [apk, setApk] = useState<ApkState>({ phase: "idle", progress: 0, message: "" });
+  const [accepted, setAccepted] = useState(false);
   const runId = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -294,7 +296,17 @@ export function ApkStudio() {
     setStatus({ kind: "idle" });
   };
 
+  const requireTerms = () => {
+    if (accepted) return true;
+    setStatus({
+      kind: "error",
+      message: "Davam etmək üçün “İstifadə qaydaları ilə razıyam” xanasını işarələyin.",
+    });
+    return false;
+  };
+
   const createBundle = async () => {
+    if (!requireTerms()) return;
     const allErrors = [...basicErrors, ...kitErrors];
     if (allErrors.length) {
       setStatus({
@@ -409,6 +421,7 @@ export function ApkStudio() {
 
   const createApk = async () => {
     if (apk.phase === "preparing" || apk.phase === "uploading") return;
+    if (!requireTerms()) return;
     if (basicErrors.length) {
       setStatus({
         kind: "error",
@@ -544,14 +557,7 @@ export function ApkStudio() {
   return (
     <main className="page-shell">
       <header className="topbar">
-        <a className="brand" href="/" data-testid="link-home" aria-label="APK Studio ana səhifə">
-          <span className="brand-mark">
-            <Code2 size={19} strokeWidth={2.5} />
-          </span>
-          <span>
-            apk<span className="brand-light">studio</span>
-          </span>
-        </a>
+        <SiteBrand />
         <div className="top-note">
           <i aria-hidden="true" /> Bulud build <span aria-hidden="true">·</span> Fayllar yalnız APK yığmaq üçün göndərilir
         </div>
@@ -1077,10 +1083,30 @@ export function ApkStudio() {
           </div>
               </div>
               <div className="action-buttons">
+          <div className="terms-box">
+            <p className="terms-warning" role="note" data-testid="notice-warning">
+              <ShieldCheck size={14} />
+              <span>
+                Zərərli tətbiqlər hazırlamaq qadağandır (virus, casus proqram, fişinq, dələduzluq, oğurlanmış və
+                ya qanunsuz məzmun). Pozuntu halında build rədd edilə bilər.{" "}
+                <Link to="/terms">İstifadə qaydaları</Link> · <Link to="/privacy">Məxfilik siyasəti</Link>
+              </span>
+            </p>
+            <label className="terms-check">
+              <input
+                type="checkbox"
+                checked={accepted}
+                onChange={(event) => setAccepted(event.target.checked)}
+                data-testid="checkbox-terms"
+              />
+              <span>İstifadə qaydaları ilə razıyam</span>
+            </label>
+          </div>
           <button
             type="button"
             className="build-button"
-            disabled={apkBusy}
+            disabled={apkBusy || !accepted}
+            title={accepted ? undefined : "Əvvəlcə istifadə qaydaları ilə razılaşın"}
             onClick={() => void createApk()}
             data-testid="button-create-apk"
           >
@@ -1099,7 +1125,7 @@ export function ApkStudio() {
           <button
             type="button"
             className="kit-button"
-            disabled={status.kind === "pending"}
+            disabled={status.kind === "pending" || !accepted}
             onClick={() => void createBundle()}
             data-testid="button-create-build-kit"
           >
@@ -1165,12 +1191,7 @@ export function ApkStudio() {
           </div>
         </aside>
       </div>
-      <footer className="footer-note">
-        <span>
-          <strong>APK Studio</strong> · Android build üçün açıq və sadə iş axını.
-        </span>
-        <span>Ubuntu · Docker · Nginx · SSL</span>
-      </footer>
+      <SiteFooter />
     </main>
   );
 }
