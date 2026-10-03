@@ -52,7 +52,7 @@ export function LegalLayout({
       <header className="topbar">
         <SiteBrand />
         <Link className="top-link" to="/studio">
-          Başla →
+          APK düzəlt →
         </Link>
       </header>
       <article className="legal-page">

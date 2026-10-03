@@ -45,7 +45,7 @@ export function Landing() {
           </p>
           <div className="landing-actions">
             <Link to="/studio" className="start-button" data-testid="button-start">
-              Başla <ArrowRight size={18} />
+              Layihəni APK-ya çevir <ArrowRight size={18} />
             </Link>
             <span className="landing-hint">Qeydiyyat tələb olunmur</span>
           </div>
