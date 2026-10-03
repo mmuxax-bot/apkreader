@@ -22,6 +22,7 @@ export function SiteFooter() {
     <footer className="footer-note site-footer" data-testid="site-footer">
       <span>
         <strong>APK Studio</strong> · Saytı Android tətbiqinə çevirən build xidməti.
+        <br />© 2026 NibrasCode · Bu layihə NibrasCode-a məxsusdur
       </span>
       <nav className="footer-links" aria-label="Hüquqi səhifələr">
         <Link to="/privacy" data-testid="link-privacy">

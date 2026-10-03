@@ -8,7 +8,7 @@ export const Route = createFileRoute("/terms")({
       {
         name: "description",
         content:
-          "APK Studio-dan istifadə qaydaları: qadağan olunmuş istifadə, məsuliyyətdən imtina və xidmətin “olduğu kimi” təqdimatı.",
+          "NibrasCode-un APK Studio xidməti üçün istifadə qaydaları: qadağan olunmuş istifadə, məsuliyyətdən imtina və xidmətin “olduğu kimi” təqdimatı.",
       },
     ],
   }),
@@ -19,6 +19,7 @@ function TermsPage() {
   return (
     <LegalLayout title="İstifadə qaydaları və məsuliyyətdən imtina" updated="3 oktyabr 2026">
       <p>
+        APK Studio layihəsi <strong>NibrasCode</strong>-a məxsusdur və NibrasCode tərəfindən idarə olunur.
         APK Studio-dan istifadə etməklə aşağıdakı qaydalarla razılaşmış olursunuz. Razı deyilsinizsə,
         xidmətdən istifadə etməyin.
       </p>
@@ -53,7 +54,7 @@ function TermsPage() {
 
       <h2>3. Məsuliyyətdən imtina</h2>
       <p>
-        Layihə və onun sahibi istifadəçilər tərəfindən yaradılan tətbiqlərə, onların məzmununa və
+        Layihə və onun sahibi (NibrasCode) istifadəçilər tərəfindən yaradılan tətbiqlərə, onların məzmununa və
         ya istifadəsindən yaranan hər hansı zərərə, itkiyə və ya hüquqi nəticəyə görə məsuliyyət
         daşımır. Yaradılan tətbiqlərin istifadəsi tam olaraq sizin və tətbiqi yayan şəxsin risküdür.
       </p>

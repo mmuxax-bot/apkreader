@@ -8,7 +8,7 @@ export const Route = createFileRoute("/privacy")({
       {
         name: "description",
         content:
-          "APK Studio hansı məlumatları göndərir, harada emal edir və nə vaxt silir — açıq və sadə izah.",
+          "NibrasCode-un APK Studio xidməti hansı məlumatları göndərir, harada emal edir və nə vaxt silir — açıq və sadə izah.",
       },
     ],
   }),
@@ -19,7 +19,9 @@ function PrivacyPage() {
   return (
     <LegalLayout title="Məxfilik siyasəti" updated="3 oktyabr 2026">
       <p>
-        Bu səhifə APK Studio-nun (“xidmət”) məlumatlarla necə işlədiyini izah edir. Xidmət sayt
+        Bu səhifə APK Studio-nun (“xidmət”) məlumatlarla necə işlədiyini izah edir. APK Studio
+        layihəsi <strong>NibrasCode</strong>-a məxsusdur; xidməti NibrasCode təqdim edir və idarə edir
+        (məlumat operatoru). Xidmət sayt
         ünvanını və ya statik sayt ZIP-ini Android tətbiqinə (APK / AAB) çevirir.
       </p>
 

@@ -8,7 +8,7 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Sayt linkini və ya statik ZIP-i verin, “Layihəni APK-ya çevir” düyməsinə basın — APK Studio Android tətbiqini yığıb yükləmə linki versin.",
+          "Sayt linkini və ya statik ZIP-i verin, “Layihəni APK-ya çevir” düyməsinə basın — NibrasCode-un APK Studio xidməti Android tətbiqini yığıb yükləmə linki versin.",
       },
     ],
   }),

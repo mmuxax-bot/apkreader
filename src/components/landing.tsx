@@ -40,8 +40,8 @@ export function Landing() {
             <em>bir kliklə çevirin.</em>
           </h1>
           <p>
-            Sayt linkini və ya hazır statik ZIP-i verin — APK Studio Android tətbiqini yığıb sizə
-            yükləmə linki versin. Android Studio, server və ya kod bilgisi tələb olunmur.
+            Sayt linkini və ya hazır statik ZIP-i verin — NibrasCode-un APK Studio xidməti Android
+            tətbiqini yığıb sizə yükləmə linki versin. Android Studio, server və ya kod bilgisi tələb olunmur.
           </p>
           <div className="landing-actions">
             <Link to="/studio" className="start-button" data-testid="button-start">
