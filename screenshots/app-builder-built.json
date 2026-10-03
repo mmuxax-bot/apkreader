@@ -1,0 +1,38 @@
+{
+  "url": "http://127.0.0.1:8081/",
+  "viewports": {
+    "desktop": {
+      "width": 1280,
+      "height": 800,
+      "status": 200,
+      "title": "APK Studio",
+      "hasCanvas": false,
+      "bodyTextLen": 2463,
+      "bodyTextHash": "d658f058f1af7c1c8c180cc16901c299ebbd2f17164072ae0532d323e7e2a65c",
+      "bodyTextPrefix": "apkstudio Lokal iş sahəsi · Fayllarınız brauzerdə qalır SAYTDAN ",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-built.png"
+    },
+    "mobile": {
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "title": "APK Studio",
+      "hasCanvas": false,
+      "bodyTextLen": 2275,
+      "bodyTextHash": "b34ba489b47cfffcac5d72dfbf709fd26e330aa150f8d93101d8936ffe593a4e",
+      "bodyTextPrefix": "apkstudio Lokal iş sahəsi · Fayllarınız brauzerdə qalır SAYTDAN ",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-built-mobile.png"
+    }
+  },
+  "brandWarnings": [],
+  "authWarnings": [],
+  "verdictFile": "/workspace/screenshots/app-builder-built.json",
+  "divergesFromBaseline": false,
+  "baselineReasons": []
+}
