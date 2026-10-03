@@ -104,7 +104,7 @@ jobs:
           chmod +x "$KIT_SCRIPT" || true
           bash "$KIT_SCRIPT"
           ls -la "$KIT_ROOT/output"
-          ls "$KIT_ROOT/output"/*.apk "$KIT_ROOT/output"/*.aab > /dev/null
+          compgen -G "$KIT_ROOT/output/*.apk" > /dev/null || compgen -G "$KIT_ROOT/output/*.aab" > /dev/null || { echo "APK/AAB tapılmadı"; exit 1; }
 
       - name: Upload build result
         uses: actions/upload-artifact@v4

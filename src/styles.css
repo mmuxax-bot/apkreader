@@ -1011,3 +1011,44 @@
 .kit-details[open] > summary {
   margin-bottom: 10px;
 }
+
+/* --- Action area at the end of the form --- */
+.action-section {
+  position: relative;
+}
+.action-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 340px);
+  gap: 18px;
+  align-items: start;
+}
+.action-status {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+  min-width: 0;
+}
+.action-status > div {
+  display: grid;
+  gap: 12px;
+}
+.action-status:empty,
+.action-status > div:empty {
+  display: none;
+}
+.action-buttons {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+@media (max-width: 720px) {
+  .action-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .action-buttons {
+    order: -1;
+  }
+  .action-status {
+    order: 2;
+  }
+}

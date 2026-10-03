@@ -438,7 +438,7 @@ async function computeStatus(cfg: GithubConfig, jobId: string): Promise<JobStatu
     return { ok: true, jobId, state: "failed", progress: 100, message: "Hazırlamaq mümkün olmadı.", reason };
   }
 
-  if (run.status === "in_progress") {
+  if (run.status !== "requested" && run.status !== "pending") {
     const jobs = await gh(cfg, "GET", `/actions/runs/${run.id}/jobs?per_page=20`);
     const list: any[] = jobs.data?.jobs ?? [];
     const publish = list.find((job) => job.name === "Publish");
@@ -447,8 +447,11 @@ async function computeStatus(cfg: GithubConfig, jobId: string): Promise<JobStatu
       const files = release ? releaseFiles(release) : [];
       if (files.length) return readyStatus(jobId, files);
     }
-    const { progress, message } = stepProgress(list);
-    return { ok: true, jobId, state: "building", progress, message };
+    const started = list.some((job) => job.status === "in_progress" || job.status === "completed");
+    if (started) {
+      const { progress, message } = stepProgress(list);
+      return { ok: true, jobId, state: "building", progress, message };
+    }
   }
 
   return { ok: true, jobId, state: "queued", progress: 4, message: "Növbədə gözləyir…" };

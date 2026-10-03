@@ -589,7 +589,7 @@ export function ApkStudio() {
           className="form-panel"
           onSubmit={(event) => {
             event.preventDefault();
-            void createBundle();
+            void createApk();
           }}
         >
           <section className="section">
@@ -951,39 +951,9 @@ export function ApkStudio() {
             </div>
             </details>
           </section>
-        </form>
-
-        <aside className="side-column" aria-label="Build xülasəsi">
-          <div className="summary-card">
-            <div className="summary-top">
-              <div className="summary-label">Layihə xülasəsi</div>
-              <div className="summary-title">{form.appName.trim() || "Yeni Android tətbiqi"}</div>
-              <div className="summary-package">{form.packageName || "az.studio.tetbiq"}</div>
-            </div>
-            <div className="summary-list">
-              <div className="summary-item">
-                <span>Mənbə</span>
-                <strong>{source === "url" ? "Veb URL" : "Statik ZIP"}</strong>
-              </div>
-              <div className="summary-item">
-                <span>Çıxış</span>
-                <strong>{form.outputFormat.toUpperCase()}</strong>
-              </div>
-              <div className="summary-item">
-                <span>Orientasiya</span>
-                <strong>{orientationLabel}</strong>
-              </div>
-              <div className="summary-divider" />
-              <div className="summary-item">
-                <span>Server</span>
-                <strong>Ubuntu {form.ubuntuVersion}</strong>
-              </div>
-              <div className="summary-item">
-                <span>HTTPS</span>
-                <strong>{form.ssl ? "Let’s Encrypt" : "Sazlanmayıb"}</strong>
-              </div>
-            </div>
-          </div>
+          <section className="section action-section" aria-label="APK düzəlt">
+            <div className="action-grid">
+              <div className="action-status">
           <div id="validation-summary">
             {basicErrors.length > 0 ? (
               <div className="status-card error" role="status" data-testid="status-validation">
@@ -1105,6 +1075,8 @@ export function ApkStudio() {
               </div>
             ) : null}
           </div>
+              </div>
+              <div className="action-buttons">
           <button
             type="button"
             className="build-button"
@@ -1154,6 +1126,42 @@ export function ApkStudio() {
               göndərilir və iş bitdikdən sonra silinir. Hazır APK qısa müddət saxlanılır; yükləmə linki
               yalnız sizdə olur.
             </span>
+          </div>
+              </div>
+            </div>
+          </section>
+        </form>
+
+        <aside className="side-column" aria-label="Build xülasəsi">
+          <div className="summary-card">
+            <div className="summary-top">
+              <div className="summary-label">Layihə xülasəsi</div>
+              <div className="summary-title">{form.appName.trim() || "Yeni Android tətbiqi"}</div>
+              <div className="summary-package">{form.packageName || "az.studio.tetbiq"}</div>
+            </div>
+            <div className="summary-list">
+              <div className="summary-item">
+                <span>Mənbə</span>
+                <strong>{source === "url" ? "Veb URL" : "Statik ZIP"}</strong>
+              </div>
+              <div className="summary-item">
+                <span>Çıxış</span>
+                <strong>{form.outputFormat.toUpperCase()}</strong>
+              </div>
+              <div className="summary-item">
+                <span>Orientasiya</span>
+                <strong>{orientationLabel}</strong>
+              </div>
+              <div className="summary-divider" />
+              <div className="summary-item">
+                <span>Server</span>
+                <strong>Ubuntu {form.ubuntuVersion}</strong>
+              </div>
+              <div className="summary-item">
+                <span>HTTPS</span>
+                <strong>{form.ssl ? "Let’s Encrypt" : "Sazlanmayıb"}</strong>
+              </div>
+            </div>
           </div>
         </aside>
       </div>
